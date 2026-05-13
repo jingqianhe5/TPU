@@ -1,9 +1,3 @@
-//input_out_valid是横向传输的
-//input_out_valid是横向传输的
-//input_out_valid是横向传输的
-//input_out_valid是横向传输的
-//input_out_valid是横向传输的
-
 module systolic #(
     parameter WIDTH = 16,
     parameter F_BITS = 8
@@ -94,9 +88,9 @@ module systolic #(
         .clk            (clk),
         .rst_n          (rst_n),
         .input_in       (input_out_11),
-        .input_out      (),//这里不需要在输出
+        .input_out      (input_out_12),
         .input_in_valid (input_out_valid_11),
-        .input_out_valid(),//这里不需要在输出
+        .input_out_valid(input_out_valid_12),
         .weight_in      (w_12),
         .weight_out     (weight_out_12), 
         .weight_valid   (weight_valid_col_2),
@@ -124,7 +118,7 @@ module systolic #(
         .rst_n          (rst_n),
         .input_in       (x_21),
         .input_out      (input_out_21),
-        .input_in_valid (x_valid_21),
+        .input_in_valid (input_out_valid_11),
         .input_out_valid(input_out_valid_21),
         .weight_in      (weight_out_11),
         .weight_out     (weight_out_21), 
@@ -153,7 +147,7 @@ module systolic #(
         .rst_n          (rst_n),
         .input_in       (input_out_21),
         .input_out      (),//这里不需要在输出
-        .input_in_valid (input_out_valid_21),
+        .input_in_valid (input_out_valid_12),
         .input_out_valid(input_out_valid_22),
         .weight_in      (weight_out_12),
         .weight_out     (weight_out_22), 

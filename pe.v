@@ -34,6 +34,10 @@ module pe #(
 
     wire signed [WIDTH-1:0] result;//总体计算结果
 
+    wire signed [WIDTH-1:0] weight_for_compute;
+
+    assign weight_for_compute = switch_in ? weight_in_buffer : weight_in_active;
+
     fxp_mul #(
         .WIIA   (WIDTH - F_BITS),
         .WIFA   (F_BITS),
@@ -43,7 +47,7 @@ module pe #(
         .WOF    (F_BITS)
     ) mult (
         .ina(input_in),
-        .inb(weight_in_active),
+        .inb(weight_for_compute),
         .out(mul_result),
         .overflow(mul_overflow)
     );

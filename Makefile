@@ -1,39 +1,96 @@
 # ==========================================
-# 脉动阵列 Verilator 仿真 Makefile
+# DE1-SoC tiny TPU XOR Verilator simulation
 # ==========================================
 
-# 1. 定义变量
-V_SRCS   = systolic.v
+TOP      = de1_soc_tiny_tpu_xor_top
 CPP_SRCS = main.cpp
-TOP      = systolic
-WAVE     = systolic.vcd
+WAVE     = de1_soc_tiny_tpu_xor_top.vcd
 
-# Verilator 编译参数 (开启所有警告, 开启波形追踪, 编译为C++, 指定可执行文件并自动build)
-VFLAGS   = -Wall --trace --cc $(V_SRCS) --exe $(CPP_SRCS) --build
+V_SRCS = \
+	de1_soc_tiny_tpu_xor_top.v \
+	tpu.v \
+	unified_buffer.sv \
+	gradient_descent.sv \
+	vpu.v \
+	systolic.v \
+	pe.v \
+	bias_centre.v \
+	bias_unit.v \
+	leaky_relu_centre.v \
+	leaky_relu_unit.v \
+	loss_centre.v \
+	loss_unit.v \
+	leaky_relu_derivative_centre.v \
+	leaky_relu_derivative_unit.v \
+	fxp_add.v \
+	fxp_addsub.v \
+	fxp_mul.v \
+	fxp_zoom.v
 
-# 声明伪目标 (防止与同名文件冲突)
-.PHONY: all build run wave clean
+ISA_TOP      = tpu_isa_confreg
+ISA_CPP_SRCS = tpu_isa_confreg_sim.cpp
+ISA_WAVE     = tpu_isa_confreg_sim.vcd
 
-# ==========================================
-# 2. 目标规则
-# ==========================================
+ISA_V_SRCS = \
+	tpu_isa_confreg.v \
+	decode.v \
+	tpu.v \
+	unified_buffer.sv \
+	gradient_descent.sv \
+	vpu.v \
+	systolic.v \
+	pe.v \
+	bias_centre.v \
+	bias_unit.v \
+	leaky_relu_centre.v \
+	leaky_relu_unit.v \
+	loss_centre.v \
+	loss_unit.v \
+	leaky_relu_derivative_centre.v \
+	leaky_relu_derivative_unit.v \
+	fxp_add.v \
+	fxp_addsub.v \
+	fxp_mul.v \
+	fxp_zoom.v
 
-# 默认目标: 直接敲 `make` 就会执行 build 和 run
+VFLAGS = -Wall --trace --cc $(V_SRCS) --top-module $(TOP) \
+	-GDEBOUNCE_LIMIT=4 \
+	-Wno-WIDTHTRUNC -Wno-WIDTHEXPAND -Wno-BLKLOOPINIT \
+	-Wno-EOFNEWLINE -Wno-PINCONNECTEMPTY -Wno-VARHIDDEN \
+	-Wno-UNUSEDSIGNAL -Wno-BLKSEQ -Wno-SYNCASYNCNET\
+	--exe $(CPP_SRCS) --build
+
+ISA_VFLAGS = -Wall --trace --cc $(ISA_V_SRCS) --top-module $(ISA_TOP) \
+	-Wno-WIDTHTRUNC -Wno-WIDTHEXPAND -Wno-BLKLOOPINIT \
+	-Wno-EOFNEWLINE -Wno-PINCONNECTEMPTY -Wno-VARHIDDEN \
+	-Wno-UNUSEDSIGNAL -Wno-BLKSEQ -Wno-SYNCASYNCNET \
+	-Wno-TIMESCALEMOD \
+	--exe $(ISA_CPP_SRCS) --build
+
+.PHONY: all build run wave isa-build isa-run isa-wave isa clean
+
 all: build run
 
-# 编译阶段: 调用 Verilator 将 Verilog 翻译为 C++ 并编译出可执行文件
 build:
 	verilator $(VFLAGS)
 
-# 运行阶段: 执行生成的二进制文件，产生波形
 run:
 	./obj_dir/V$(TOP)
 
-# 查看波形: 后台打开 GTKWave
 wave:
 	gtkwave $(WAVE) &
 
-# 清理阶段: 核心需求，删掉编译产生的文件夹和波形文件
+isa-build:
+	verilator $(ISA_VFLAGS)
+
+isa-run:
+	./obj_dir/V$(ISA_TOP)
+
+isa-wave:
+	gtkwave $(ISA_WAVE) &
+
+isa: isa-build isa-run
+
 clean:
 	rm -rf obj_dir
 	rm -f *.vcd

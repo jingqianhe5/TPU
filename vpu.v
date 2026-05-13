@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module vpu#(
     parameter WIDTH = 16,
     parameter F_BITS = 8
@@ -33,76 +35,76 @@ module vpu#(
     output reg                    vpu_valid_out_2
 );
     //bias
-    wire signed [WIDTH-1:0] bias_data_in_1;
-    wire signed [WIDTH-1:0] bias_data_in_2;
-    wire bias_valid_in_1;
-    wire bias_valid_in_2;
-    wire signed [WIDTH-1:0] bias_data_out_1;
-    wire signed [WIDTH-1:0] bias_data_out_2;
-    wire bias_valid_out_1;
-    wire bias_valid_out_2;
+    reg signed [WIDTH-1:0] bias_data_in_1;
+    reg signed [WIDTH-1:0] bias_data_in_2;
+    reg bias_valid_in_1;
+    reg bias_valid_in_2;
+    reg signed [WIDTH-1:0] bias_data_out_1;
+    reg signed [WIDTH-1:0] bias_data_out_2;
+    reg bias_valid_out_1;
+    reg bias_valid_out_2;
 
     //bias_to_leaky_relu
-    wire signed [WIDTH-1:0] b2lr_data_in_1;
-    wire signed [WIDTH-1:0] b2lr_data_in_2;
-    wire b2lr_valid_in_1;
-    wire b2lr_valid_in_2;
+    reg signed [WIDTH-1:0] b2lr_data_in_1;
+    reg signed [WIDTH-1:0] b2lr_data_in_2;
+    reg b2lr_valid_in_1;
+    reg b2lr_valid_in_2;
 
     //lr
-    wire signed [WIDTH-1:0] lr_data_in_1;
-    wire signed [WIDTH-1:0] lr_data_in_2;
-    wire lr_valid_in_1;
-    wire lr_valid_in_2;
-    wire signed [WIDTH-1:0] lr_data_out_1;
-    wire signed [WIDTH-1:0] lr_data_out_2;
-    wire lr_valid_out_1;
-    wire lr_valid_out_2;
+    reg signed [WIDTH-1:0] lr_data_in_1;
+    reg signed [WIDTH-1:0] lr_data_in_2;
+    reg lr_valid_in_1;
+    reg lr_valid_in_2;
+    reg signed [WIDTH-1:0] lr_data_out_1;
+    reg signed [WIDTH-1:0] lr_data_out_2;
+    reg lr_valid_out_1;
+    reg lr_valid_out_2;
 
     //lr_to_loss
-    wire signed [WIDTH-1:0] lr2loss_data_in_1;
-    wire signed [WIDTH-1:0] lr2loss_data_in_2;
-    wire lr2loss_valid_in_1;
-    wire lr2loss_valid_in_2;
+    reg signed [WIDTH-1:0] lr2loss_data_in_1;
+    reg signed [WIDTH-1:0] lr2loss_data_in_2;
+    reg lr2loss_valid_in_1;
+    reg lr2loss_valid_in_2;
 
     //loss
-    wire signed [WIDTH-1:0] loss_data_in_1;
-    wire signed [WIDTH-1:0] loss_data_in_2;
-    wire loss_valid_in_1;
-    wire loss_valid_in_2;
-    wire signed [WIDTH-1:0] loss_data_out_1;
-    wire signed [WIDTH-1:0] loss_data_out_2;
-    wire loss_valid_out_1;
-    wire loss_valid_out_2;
+    reg signed [WIDTH-1:0] loss_data_in_1;
+    reg signed [WIDTH-1:0] loss_data_in_2;
+    reg loss_valid_in_1;
+    reg loss_valid_in_2;
+    reg signed [WIDTH-1:0] loss_data_out_1;
+    reg signed [WIDTH-1:0] loss_data_out_2;
+    reg loss_valid_out_1;
+    reg loss_valid_out_2;
 
     //loss_to_lrd
-    wire signed [WIDTH-1:0] loss2lrd_data_in_1;
-    wire signed [WIDTH-1:0] loss2lrd_data_in_2;
-    wire loss2lrd_valid_in_1;
-    wire loss2lrd_valid_in_2;
+    reg signed [WIDTH-1:0] loss2lrd_data_in_1;
+    reg signed [WIDTH-1:0] loss2lrd_data_in_2;
+    reg loss2lrd_valid_in_1;
+    reg loss2lrd_valid_in_2;
 
     //lrd
-    wire signed [WIDTH-1:0] lrd_data_in_1;
-    wire signed [WIDTH-1:0] lrd_data_in_2;
-    wire lrd_valid_in_1;
-    wire lrd_valid_in_2;
-    wire signed [WIDTH-1:0] lrd_data_out_1;
-    wire signed [WIDTH-1:0] lrd_data_out_2;
-    wire lrd_valid_out_1;
-    wire lrd_valid_out_2;
-    wire signed [WIDTH-1:0] leaky_data_in_1;//输入历史数据
-    wire signed [WIDTH-1:0] leaky_data_in_2;
+    reg signed [WIDTH-1:0] lrd_data_in_1;
+    reg signed [WIDTH-1:0] lrd_data_in_2;
+    reg lrd_valid_in_1;
+    reg lrd_valid_in_2;
+    reg signed [WIDTH-1:0] lrd_data_out_1;
+    reg signed [WIDTH-1:0] lrd_data_out_2;
+    reg lrd_valid_out_1;
+    reg lrd_valid_out_2;
+    reg signed [WIDTH-1:0] leaky_data_in_1;//输入历史数据
+    reg signed [WIDTH-1:0] leaky_data_in_2;
 
     //temp H
-    wire signed [WIDTH-1:0] last_H_data_in_1;
-    wire signed [WIDTH-1:0] last_H_data_in_2;
+    reg signed [WIDTH-1:0] last_H_data_in_1;
+    reg signed [WIDTH-1:0] last_H_data_in_2;
     reg signed [WIDTH-1:0] last_H_data_out_1;
     reg signed [WIDTH-1:0] last_H_data_out_2;
 
     //fix
-    wire signed [WIDTH-1:0] vpu_data_mux_1;
-    wire signed [WIDTH-1:0] vpu_data_mux_2;
-    wire vpu_valid_mux_1;
-    wire vpu_valid_mux_2;
+    reg signed [WIDTH-1:0] vpu_data_mux_1;
+    reg signed [WIDTH-1:0] vpu_data_mux_2;
+    reg vpu_valid_mux_1;
+    reg vpu_valid_mux_2;
 
     bias_centre #(
         .WIDTH(WIDTH),
@@ -212,7 +214,7 @@ module vpu#(
     //数据的输入选择 决定什么模块工作
     always@ (*)begin
         b2lr_data_in_1 = 0;
-        b2lr_data_in_2 = 0
+        b2lr_data_in_2 = 0;
         b2lr_valid_in_1 = 0;
         b2lr_valid_in_2 = 0;
         lr2loss_data_in_1 = 0;
