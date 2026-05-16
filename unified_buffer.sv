@@ -11,9 +11,15 @@ module unified_buffer #(
     // Write ports from VPU to UB
     input logic [15:0] ub_wr_data_in [SYSTOLIC_ARRAY_WIDTH],
     input logic ub_wr_valid_in [SYSTOLIC_ARRAY_WIDTH],
+    input logic [15:0] ub_wr_addr_in,
+    input logic ub_wr_addr_start_in,
+    input logic ub_wr_accumulate_in,
+    input logic [15:0] ub_grad_addr_in,
+    input logic ub_grad_addr_start_in,
 
     // Write ports from host to UB (for loading in parameters)
     input logic [15:0] ub_wr_host_data_in [SYSTOLIC_ARRAY_WIDTH],
+    input logic [15:0] ub_wr_host_addr_in [SYSTOLIC_ARRAY_WIDTH],
     input logic ub_wr_host_valid_in [SYSTOLIC_ARRAY_WIDTH],
 
     // Read instruction input from instruction memory
@@ -115,9 +121,13 @@ module unified_buffer #(
 
     // Internal logic for gradient descent inputs from UB to gradient descent modules
     logic [15:0] value_old_in [SYSTOLIC_ARRAY_WIDTH];
-    logic grad_descent_valid_in [SYSTOLIC_ARRAY_WIDTH];
+    logic [15:0] grad_value_in [SYSTOLIC_ARRAY_WIDTH];
+    logic grad_value_valid_in [SYSTOLIC_ARRAY_WIDTH];
     logic [15:0] value_updated_out [SYSTOLIC_ARRAY_WIDTH];
     logic grad_descent_done_out [SYSTOLIC_ARRAY_WIDTH];
+
+    logic [15:0] grad_addr_base;
+    logic [15:0] rd_update_grad_ptr;
     
     // Where to write gradients to UB
     logic [15:0] grad_descent_ptr;
@@ -134,6 +144,7 @@ module unified_buffer #(
     logic [15:0]        rd_Y_ptr_next;
     logic [15:0]        rd_H_ptr_next;
     logic [15:0]        rd_grad_weight_ptr_next;
+    logic [15:0]        rd_update_grad_ptr_next;
     logic [15:0]        grad_descent_ptr_next;
 
     genvar i;
@@ -143,9 +154,9 @@ module unified_buffer #(
                 .clk(clk),
                 .rst(rst),
                 .lr_in(learning_rate_in),
-                .grad_in(ub_wr_data_in[i]),
+                .grad_in(grad_value_in[i]),
                 .value_old_in(value_old_in[i]),
-                .grad_descent_valid_in(grad_descent_valid_in[i]),
+                .grad_descent_valid_in(grad_value_valid_in[i]),
                 .grad_bias_or_weight(grad_bias_or_weight),
                 .value_updated_out(value_updated_out[i]),
                 .grad_descent_done_out(grad_descent_done_out[i]),
@@ -188,21 +199,6 @@ module unified_buffer #(
         end
     end
 
-    always_comb begin   // Automatically turn on gradient descent modules when bias or weight gradient descent pointers have been set by a read command
-        if (
-            rd_grad_bias_time_counter < rd_grad_bias_row_size + rd_grad_bias_col_size ||
-            rd_grad_weight_time_counter < rd_grad_weight_row_size + rd_grad_weight_col_size
-        ) begin
-            for (int i = 0; i < SYSTOLIC_ARRAY_WIDTH; i++) begin
-                grad_descent_valid_in[i] = ub_wr_valid_in[i];
-            end
-        end else begin
-            for (int i = 0; i < SYSTOLIC_ARRAY_WIDTH; i++) begin
-                grad_descent_valid_in[i] = 1'b0;
-            end
-        end
-    end 
-
     always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
             // reset all memory to 0
@@ -220,9 +216,12 @@ module unified_buffer #(
                 ub_rd_Y_data_out[i] <= '0;
                 ub_rd_H_data_out[i] <= '0;
                 value_old_in[i] <= '0;
+                grad_value_in[i] <= '0;
+                grad_value_valid_in[i] <= 1'b0;
             end
 
             wr_ptr <= '0;
+            grad_addr_base <= '0;
 
             rd_input_ptr <= '0;
             rd_input_row_size <= '0;
@@ -260,21 +259,36 @@ module unified_buffer #(
             rd_grad_weight_row_size <= '0;
             rd_grad_weight_col_size <= '0;
             rd_grad_weight_time_counter <= '0;
+            rd_update_grad_ptr <= '0;
             grad_bias_or_weight <= '0;
             grad_descent_ptr <= '0;
         end else begin
+            if (ub_grad_addr_start_in) begin
+                grad_addr_base <= ub_grad_addr_in;
+            end
+
+            for (int i = 0; i < SYSTOLIC_ARRAY_WIDTH; i++) begin
+                grad_value_valid_in[i] <= 1'b0;
+            end
+
             // WRITING LOGIC
             // matrices are stored in row major format
             // if there are two columns, the first column will be stored at even indices and the second column will be stored at odd indices
             // BUG-UB-2 note: loop decrements so channel[1] is at lower address than channel[0] (intentional row-major order)
-            wr_ptr_next = wr_ptr;  // BUG-UB-1 fix: use _next variable; single <= at end
+            wr_ptr_next = ub_wr_addr_start_in ? ub_wr_addr_in : wr_ptr;  // BUG-UB-1 fix: use _next variable; single <= at end
             for (int i = SYSTOLIC_ARRAY_WIDTH-1; i >= 0; i--) begin     // FOR LOOP SHOULD DECREMENT TO STORE IN ROW MAJOR ORDER!!!
                 if (ub_wr_valid_in[i]) begin
-                    ub_memory[wr_ptr_next] <= ub_wr_data_in[i];
+                    if (ub_wr_accumulate_in) begin
+                        ub_memory[wr_ptr_next] <= $signed(ub_memory[wr_ptr_next]) + $signed(ub_wr_data_in[i]);
+                    end else begin
+                        ub_memory[wr_ptr_next] <= ub_wr_data_in[i];
+                    end
                     wr_ptr_next = wr_ptr_next + 1;
                 end else if (ub_wr_host_valid_in[i]) begin
-                    ub_memory[wr_ptr_next] <= ub_wr_host_data_in[i];
-                    wr_ptr_next = wr_ptr_next + 1;
+                    ub_memory[ub_wr_host_addr_in[i]] <= ub_wr_host_data_in[i];
+                    if (ub_wr_host_addr_in[i] >= wr_ptr_next) begin
+                        wr_ptr_next = ub_wr_host_addr_in[i] + 16'd1;
+                    end
                 end
             end
             wr_ptr <= wr_ptr_next;
@@ -452,23 +466,32 @@ module unified_buffer #(
                 for (int i = 0; i < SYSTOLIC_ARRAY_WIDTH; i++) begin
                     if(rd_grad_bias_time_counter >= i && rd_grad_bias_time_counter < rd_grad_bias_row_size + i && i < rd_grad_bias_col_size) begin
                         value_old_in[i] <= ub_memory[rd_grad_bias_ptr + i];
+                        grad_value_in[i] <= ub_memory[rd_update_grad_ptr + i];
+                        grad_value_valid_in[i] <= 1'b1;
                     end else begin
                         value_old_in[i] <= '0;
+                        grad_value_in[i] <= '0;
                     end
                 end
                 rd_grad_bias_time_counter <= rd_grad_bias_time_counter + 1;
             end else if (rd_grad_weight_time_counter + 1 < rd_grad_weight_row_size + rd_grad_weight_col_size) begin
                 rd_grad_weight_ptr_next = rd_grad_weight_ptr;  // BUG-UB-1 fix
+                rd_update_grad_ptr_next = rd_update_grad_ptr;
                 for (int i = SYSTOLIC_ARRAY_WIDTH-1; i >= 0; i--) begin
                     if(rd_grad_weight_time_counter >= i && rd_grad_weight_time_counter < rd_grad_weight_row_size + i && i < rd_grad_weight_col_size) begin 
                         value_old_in[i] <= ub_memory[rd_grad_weight_ptr_next];
+                        grad_value_in[i] <= ub_memory[rd_update_grad_ptr_next];
+                        grad_value_valid_in[i] <= 1'b1;
                         rd_grad_weight_ptr_next = rd_grad_weight_ptr_next + 1;
+                        rd_update_grad_ptr_next = rd_update_grad_ptr_next + 1;
                     end else begin 
                         value_old_in[i] <= '0;
+                        grad_value_in[i] <= '0;
                     end
                 end
                 rd_grad_weight_time_counter <= rd_grad_weight_time_counter + 1;
                 rd_grad_weight_ptr <= rd_grad_weight_ptr_next;
+                rd_update_grad_ptr <= rd_update_grad_ptr_next;
             end else begin
                 rd_grad_bias_ptr <= 0;
                 rd_grad_bias_row_size <= 0;
@@ -478,8 +501,10 @@ module unified_buffer #(
                 rd_grad_weight_row_size <= 0;
                 rd_grad_weight_col_size <= 0;
                 rd_grad_weight_time_counter <= '0;
+                rd_update_grad_ptr <= 0;
                 for (int i = 0; i < SYSTOLIC_ARRAY_WIDTH; i++) begin
                     value_old_in[i] <= '0;
+                    grad_value_in[i] <= '0;
                 end
             end
 
@@ -536,6 +561,7 @@ module unified_buffer #(
                         rd_grad_bias_row_size <= ub_rd_row_size;
                         rd_grad_bias_col_size <= ub_rd_col_size;
                         rd_grad_bias_time_counter <= '0;
+                        rd_update_grad_ptr <= grad_addr_base;
                         grad_bias_or_weight <= 1'b0;
                         grad_descent_ptr <= ub_rd_addr_in;
                     end
@@ -544,6 +570,7 @@ module unified_buffer #(
                         rd_grad_weight_row_size <= ub_rd_row_size;
                         rd_grad_weight_col_size <= ub_rd_col_size;
                         rd_grad_weight_time_counter <= '0;
+                        rd_update_grad_ptr <= grad_addr_base;
                         grad_bias_or_weight <= 1'b1;
                         grad_descent_ptr <= ub_rd_addr_in;
                     end

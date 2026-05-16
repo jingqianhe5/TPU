@@ -44,8 +44,16 @@ module tpu_isa_confreg #(
 
     wire [15:0] ub_wr_host_data_in_0;
     wire [15:0] ub_wr_host_data_in_1;
+    wire [15:0] ub_wr_host_addr_in_0;
+    wire [15:0] ub_wr_host_addr_in_1;
     wire        ub_wr_host_valid_in_0;
     wire        ub_wr_host_valid_in_1;
+
+    wire        ub_wr_addr_start_in;
+    wire [15:0] ub_wr_addr_in;
+    wire        ub_wr_accumulate_in;
+    wire        ub_grad_addr_start_in;
+    wire [15:0] ub_grad_addr_in;
 
     wire        ub_rd_start_in;
     wire        ub_rd_transpose_in;
@@ -66,8 +74,15 @@ module tpu_isa_confreg #(
 
         .ub_wr_host_data_in_0(ub_wr_host_data_in_0),
         .ub_wr_host_data_in_1(ub_wr_host_data_in_1),
+        .ub_wr_host_addr_in_0(ub_wr_host_addr_in_0),
+        .ub_wr_host_addr_in_1(ub_wr_host_addr_in_1),
         .ub_wr_host_valid_in_0(ub_wr_host_valid_in_0),
         .ub_wr_host_valid_in_1(ub_wr_host_valid_in_1),
+        .ub_wr_addr_start_in(ub_wr_addr_start_in),
+        .ub_wr_addr_in(ub_wr_addr_in),
+        .ub_wr_accumulate_in(ub_wr_accumulate_in),
+        .ub_grad_addr_start_in(ub_grad_addr_start_in),
+        .ub_grad_addr_in(ub_grad_addr_in),
 
         .ub_rd_start_in(ub_rd_start_in),
         .ub_rd_transpose_in(ub_rd_transpose_in),
@@ -88,8 +103,16 @@ module tpu_isa_confreg #(
 
         .ub_wr_host_data_in_0(ub_wr_host_data_in_0),
         .ub_wr_host_data_in_1(ub_wr_host_data_in_1),
+        .ub_wr_host_addr_in_0(ub_wr_host_addr_in_0),
+        .ub_wr_host_addr_in_1(ub_wr_host_addr_in_1),
         .ub_wr_host_valid_in_0(ub_wr_host_valid_in_0),
         .ub_wr_host_valid_in_1(ub_wr_host_valid_in_1),
+
+        .ub_wr_addr_start_in(ub_wr_addr_start_in),
+        .ub_wr_addr_in(ub_wr_addr_in),
+        .ub_wr_accumulate_in(ub_wr_accumulate_in),
+        .ub_grad_addr_start_in(ub_grad_addr_start_in),
+        .ub_grad_addr_in(ub_grad_addr_in),
 
         .ub_rd_start_in(ub_rd_start_in),
         .ub_rd_transpose_in(ub_rd_transpose_in),

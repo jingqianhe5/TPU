@@ -63,8 +63,15 @@ module de1_soc_tiny_tpu_xor_top #(
 
     reg [15:0] ub_wr_host_data_in_0;
     reg [15:0] ub_wr_host_data_in_1;
+    reg [15:0] ub_wr_host_addr_in_0;
+    reg [15:0] ub_wr_host_addr_in_1;
     reg ub_wr_host_valid_in_0;
     reg ub_wr_host_valid_in_1;
+    reg ub_wr_addr_start_in;
+    reg [15:0] ub_wr_addr_in;
+    reg ub_wr_accumulate_in;
+    reg ub_grad_addr_start_in;
+    reg [15:0] ub_grad_addr_in;
     reg ub_rd_start_in;
     reg ub_rd_transpose;
     reg [8:0] ub_ptr_select;
@@ -109,8 +116,15 @@ module de1_soc_tiny_tpu_xor_top #(
         .rst_n(!tpu_reset),
         .ub_wr_host_data_in_0(ub_wr_host_data_in_0),
         .ub_wr_host_data_in_1(ub_wr_host_data_in_1),
+        .ub_wr_host_addr_in_0(ub_wr_host_addr_in_0),
+        .ub_wr_host_addr_in_1(ub_wr_host_addr_in_1),
         .ub_wr_host_valid_in_0(ub_wr_host_valid_in_0),
         .ub_wr_host_valid_in_1(ub_wr_host_valid_in_1),
+        .ub_wr_addr_start_in(ub_wr_addr_start_in),
+        .ub_wr_addr_in(ub_wr_addr_in),
+        .ub_wr_accumulate_in(ub_wr_accumulate_in),
+        .ub_grad_addr_start_in(ub_grad_addr_start_in),
+        .ub_grad_addr_in(ub_grad_addr_in),
         .ub_rd_start_in(ub_rd_start_in),
         .ub_rd_transpose_in(ub_rd_transpose),
         .ub_ptr_select_in(ub_ptr_select),
@@ -151,8 +165,15 @@ module de1_soc_tiny_tpu_xor_top #(
     always @(*) begin
         ub_wr_host_data_in_0 = 16'h0000;
         ub_wr_host_data_in_1 = 16'h0000;
+        ub_wr_host_addr_in_0 = 16'd0;
+        ub_wr_host_addr_in_1 = 16'd0;
         ub_wr_host_valid_in_0 = 1'b0;
         ub_wr_host_valid_in_1 = 1'b0;
+        ub_wr_addr_start_in = 1'b0;
+        ub_wr_addr_in = 16'd0;
+        ub_wr_accumulate_in = 1'b0;
+        ub_grad_addr_start_in = 1'b0;
+        ub_grad_addr_in = 16'd0;
         ub_rd_start_in = 1'b0;
         ub_rd_transpose = 1'b0;
         ub_ptr_select = 9'd0;
@@ -167,31 +188,38 @@ module de1_soc_tiny_tpu_xor_top #(
                 case (load_step)
                     4'd0: begin
                         ub_wr_host_data_in_0 = x_value_0;
+                        ub_wr_host_addr_in_0 = 16'd0;
                         ub_wr_host_valid_in_0 = 1'b1;
                     end
                     4'd1,
                     4'd2,
                     4'd3: begin
                         ub_wr_host_data_in_0 = x_value_0;
+                        ub_wr_host_addr_in_0 = {12'd0, load_step} << 1;
                         ub_wr_host_valid_in_0 = 1'b1;
                         ub_wr_host_data_in_1 = x_value_1;
+                        ub_wr_host_addr_in_1 = ({12'd0, load_step} << 1) - 16'd1;
                         ub_wr_host_valid_in_1 = 1'b1;
                     end
                     4'd4: begin
                         ub_wr_host_data_in_0 = 16'h0000;
+                        ub_wr_host_addr_in_0 = 16'd8;
                         ub_wr_host_valid_in_0 = 1'b1;
                         ub_wr_host_data_in_1 = x_value_1;
+                        ub_wr_host_addr_in_1 = 16'd7;
                         ub_wr_host_valid_in_1 = 1'b1;
                     end
                     4'd5,
                     4'd6,
                     4'd7: begin
                         ub_wr_host_data_in_0 = 16'h0000;
+                        ub_wr_host_addr_in_0 = load_step + 16'd4;
                         ub_wr_host_valid_in_0 = 1'b1;
                     end
                     4'd8: begin
     // addr12 = -1
     ub_wr_host_data_in_0 = 16'hFF00;
+    ub_wr_host_addr_in_0 = 16'd12;
     ub_wr_host_valid_in_0 = 1'b1;
 end
 
@@ -199,8 +227,10 @@ end
     // addr13 = +1
     // addr14 = +1
     ub_wr_host_data_in_0 = 16'h0100; // addr14
+    ub_wr_host_addr_in_0 = 16'd14;
     ub_wr_host_valid_in_0 = 1'b1;
     ub_wr_host_data_in_1 = 16'h0100; // addr13
+    ub_wr_host_addr_in_1 = 16'd13;
     ub_wr_host_valid_in_1 = 1'b1;
 end
 
@@ -208,8 +238,10 @@ end
     // addr15 = -1
     // addr16 = B1[0] = 0
     ub_wr_host_data_in_0 = 16'h0000; // addr16
+    ub_wr_host_addr_in_0 = 16'd16;
     ub_wr_host_valid_in_0 = 1'b1;
     ub_wr_host_data_in_1 = 16'hFF00; // addr15
+    ub_wr_host_addr_in_1 = 16'd15;
     ub_wr_host_valid_in_1 = 1'b1;
 end
 
@@ -217,8 +249,10 @@ end
     // addr17 = B1[1] = 0
     // addr18 = W2[0] = +1
     ub_wr_host_data_in_0 = 16'h0100;
+    ub_wr_host_addr_in_0 = 16'd18;
     ub_wr_host_valid_in_0 = 1'b1;
     ub_wr_host_data_in_1 = 16'h0000;
+    ub_wr_host_addr_in_1 = 16'd17;
     ub_wr_host_valid_in_1 = 1'b1;
 end
 
@@ -226,8 +260,10 @@ end
     // addr19 = W2[1] = +1
     // addr20 = B2 = -0.75
     ub_wr_host_data_in_0 = 16'hFF40;
+    ub_wr_host_addr_in_0 = 16'd20;
     ub_wr_host_valid_in_0 = 1'b1;
     ub_wr_host_data_in_1 = 16'h0100;
+    ub_wr_host_addr_in_1 = 16'd19;
     ub_wr_host_valid_in_1 = 1'b1;
 end
                     default: begin
@@ -243,6 +279,8 @@ end
                 ub_rd_col_size = 16'd2;//读取的列数
             end
             ST_CMD_X: begin
+                ub_wr_addr_start_in = 1'b1;
+                ub_wr_addr_in = 16'd21;
                 ub_rd_start_in = 1'b1;
                 ub_ptr_select = 9'd0;//数据类型是数据的输入
                 ub_rd_addr_in = 16'd0;//开始读取的地址
@@ -276,6 +314,8 @@ end
                 vpu_data_pathway = 4'b1100;
             end
             ST_CMD_H1: begin//第一层的输出是第二层的输入
+                ub_wr_addr_start_in = 1'b1;
+                ub_wr_addr_in = 16'd29;
                 ub_rd_start_in = 1'b1;
                 ub_ptr_select = 9'd0;
                 ub_rd_addr_in = 16'd21;

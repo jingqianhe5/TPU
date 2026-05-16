@@ -7,10 +7,17 @@ module tpu#(
     
     input wire [15:0] ub_wr_host_data_in_0,
     input wire [15:0] ub_wr_host_data_in_1,
+    input wire [15:0] ub_wr_host_addr_in_0,
+    input wire [15:0] ub_wr_host_addr_in_1,
     input wire ub_wr_host_valid_in_0,
     input wire ub_wr_host_valid_in_1,
 
     //数据操作信号
+    input   ub_wr_addr_start_in,
+    input   [15:0] ub_wr_addr_in,//VPU写回UB的起始地址
+    input   ub_wr_accumulate_in,//VPU写回UB时是否累加
+    input   ub_grad_addr_start_in,
+    input   [15:0] ub_grad_addr_in,//gradient_descent读取gradient的起始地址
     input   ub_rd_start_in,
     input   ub_rd_transpose_in,
     input   [8:0] ub_ptr_select_in,//需要读取的数据类型
@@ -76,6 +83,7 @@ module tpu#(
     wire [15:0] ub_wr_data_in [0:SYSTOLIC_ARRAY_WIDTH-1];
     wire ub_wr_valid_in [0:SYSTOLIC_ARRAY_WIDTH-1];
     wire [15:0] ub_wr_host_data_in [0:SYSTOLIC_ARRAY_WIDTH-1];
+    wire [15:0] ub_wr_host_addr_in [0:SYSTOLIC_ARRAY_WIDTH-1];
     wire ub_wr_host_valid_in [0:SYSTOLIC_ARRAY_WIDTH-1];
 
     assign ub_wr_data_in[0] = ub_wr_data_in_0;
@@ -85,6 +93,8 @@ module tpu#(
 
     assign ub_wr_host_data_in[0] = ub_wr_host_data_in_0;
     assign ub_wr_host_data_in[1] = ub_wr_host_data_in_1;
+    assign ub_wr_host_addr_in[0] = ub_wr_host_addr_in_0;
+    assign ub_wr_host_addr_in[1] = ub_wr_host_addr_in_1;
     assign ub_wr_host_valid_in[0] = ub_wr_host_valid_in_0;
     assign ub_wr_host_valid_in[1] = ub_wr_host_valid_in_1;
 
@@ -96,9 +106,15 @@ module tpu#(
 
         .ub_wr_data_in(ub_wr_data_in),
         .ub_wr_valid_in(ub_wr_valid_in),
+        .ub_wr_addr_in(ub_wr_addr_in),
+        .ub_wr_addr_start_in(ub_wr_addr_start_in),
+        .ub_wr_accumulate_in(ub_wr_accumulate_in),
+        .ub_grad_addr_in(ub_grad_addr_in),
+        .ub_grad_addr_start_in(ub_grad_addr_start_in),
 
         // Write ports from host to UB (for loading in parameters)
         .ub_wr_host_data_in(ub_wr_host_data_in),
+        .ub_wr_host_addr_in(ub_wr_host_addr_in),
         .ub_wr_host_valid_in(ub_wr_host_valid_in),
 
         // Read instruction input from instruction memory
